@@ -36,13 +36,18 @@ prompt3= PromptTemplate(
     input_variables={'feedback'}
 )
 
+parallel_chain = RunnableParallel({
+    "feedback": lambda x: x["feedback"],
+    "sentiment": classifier_chain
+}) 
+
 branch_chain= RunnableBranch(
-    (lambda x:x.sentiment=='positive', prompt2 | model | parser),
-    (lambda x:x.sentiment=='negative', prompt3 | model | parser),
+    (lambda x:x["sentiment"].sentiment=='positive', prompt2 | model | parser),
+    (lambda x:x["sentiment"].sentiment=='negative', prompt3 | model | parser),
     RunnableLambda(lambda x:"could not find sentiment")
 )
 
-chain = classifer_chain | branch_chain
+chain = parallel_chain | branch_chain
 
 result = chain.invoke({'feedback':'This is a terrible phone'})
 
