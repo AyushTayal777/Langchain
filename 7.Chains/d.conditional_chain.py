@@ -1,4 +1,4 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_huggingface import ChatHuggingFace,HuggingFaceEndpoint
 from dotenv import load_dotenv
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -9,8 +9,12 @@ from typing import Literal
 
 load_dotenv()
 
-model= ChatGoogleGenerativeAI(model="gemini-3.6-flash")
+llm=HuggingFaceEndpoint(
+    repo_id="Qwen/Qwen2.5-7B-Instruct",
+    task="text-generation"
+)
 
+model=ChatHuggingFace(llm=llm)
 parser= StrOutputParser()
 
 class Feedback(BaseModel):
@@ -24,7 +28,7 @@ prompt1= PromptTemplate(
     partial_variables={'format_instruction':parser2.get_format_instructions()}
 )
 
-classifer_chain = prompt1 | model | parser2
+classifier_chain = prompt1 | model | parser2
 
 prompt2= PromptTemplate(
     template='write an appropriate response to this positive feedback response \n {feedback}',
@@ -40,7 +44,6 @@ parallel_chain = RunnableParallel({
     "feedback": lambda x: x["feedback"],
     "sentiment": classifier_chain
 }) 
-
 branch_chain= RunnableBranch(
     (lambda x:x["sentiment"].sentiment=='positive', prompt2 | model | parser),
     (lambda x:x["sentiment"].sentiment=='negative', prompt3 | model | parser),
